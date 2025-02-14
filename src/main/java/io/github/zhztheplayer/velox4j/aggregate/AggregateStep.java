@@ -11,7 +11,6 @@ public enum AggregateStep {
 
   private final String value;
 
-  @JsonCreator
   AggregateStep(String value) {
     this.value = value;
   }

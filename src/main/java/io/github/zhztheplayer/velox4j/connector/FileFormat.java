@@ -18,7 +18,6 @@ public enum FileFormat {
 
   private final String value;
 
-  @JsonCreator
   FileFormat(String value) {
     this.value = value;
   }
