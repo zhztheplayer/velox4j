@@ -9,6 +9,7 @@ import io.github.zhztheplayer.velox4j.memory.AllocationListener;
 import io.github.zhztheplayer.velox4j.memory.MemoryManager;
 import io.github.zhztheplayer.velox4j.plan.AggregationNode;
 import io.github.zhztheplayer.velox4j.plan.PlanNode;
+import io.github.zhztheplayer.velox4j.plan.ProjectNode;
 import io.github.zhztheplayer.velox4j.plan.ValuesNode;
 import io.github.zhztheplayer.velox4j.sort.SortOrder;
 import io.github.zhztheplayer.velox4j.type.IntegerType;
@@ -81,5 +82,14 @@ public class PlanNodeSerdeTest {
         List.of(0)
     );
     SerdeTests.testVeloxSerializableRoundTrip(aggregationNode);
+  }
+
+  @Test
+  public void testProjectNode() {
+    final PlanNode scan = SerdeTests.newSampleTableScanNode();
+    final ProjectNode projectNode = new ProjectNode("id-1", List.of(scan),
+        List.of("foo"),
+        List.of(FieldAccessTypedExpr.create(new IntegerType(), "foo")));
+    SerdeTests.testVeloxSerializableRoundTrip(projectNode);
   }
 }
