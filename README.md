@@ -14,8 +14,8 @@ executions.
 
 Homepages of Velox:
 
-- [GitHub repository](https://github.com/facebookincubator/velox)
-- [Official website](https://velox-lib.io/)
+- [Velox GitHub repository](https://github.com/facebookincubator/velox)
+- [Velox Official website](https://velox-lib.io/)
 
 Critical open source projects depending on Velox:
 
@@ -90,7 +90,10 @@ Linux distributions with lower versions of glibc.
 The following is a brief example of using Velox4j to execute a query:
 
 ```java
-// 1. Define the plan output schema.
+// 1. Initialize Velox4j.
+Velox4j.ensureInitialized();
+
+// 2. Define the plan output schema.
 final RowType outputType = new RowType(List.of(
         "n_nationkey",
         "n_name",
@@ -103,7 +106,7 @@ final RowType outputType = new RowType(List.of(
         new VarCharType()
     ));
 
-// 2. Create a table scan node.
+// 3. Create a table scan node.
 final TableScanNode scanNode = new TableScanNode(
     "plan-id-1",
     outputType,
@@ -119,7 +122,7 @@ final TableScanNode scanNode = new TableScanNode(
     toAssignments(outputType)
 );
 
-// 3. Create a split associating with the table scan node, this makes
+// 4. Create a split associating with the table scan node, this makes
 // the scan read a local file "/tmp/nation.parquet".
 final File file = new File("/tmp/nation.parquet");
 final BoundSplit split = new BoundSplit(
@@ -145,24 +148,24 @@ final BoundSplit split = new BoundSplit(
     )
 );
 
-// 4. Build the query.
+// 5. Build the query.
 final Query query = new Query(scanNode, List.of(split), Config.empty(), ConnectorConfig.empty());
 
-// 5. Create a JNI session.
+// 6. Create a JNI session.
 final MemoryManager memoryManager = MemoryManager.create(AllocationListener.NOOP);
 final JniApi jniApi = JniApi.create(memoryManager);
 
-// 6. Execute the query.
+// 7. Execute the query.
 final UpIterator itr = query.execute(jniApi);
 
-// 7. Collect and print results.
+// 8. Collect and print results.
 while (itr.hasNext()) {
-  final RowVector rowVector = itr.next(); // 7.1. Get next RowVector returned by Velox.
-  final Table arrowTable = Arrow.toArrowTable(new RootAllocator(), rowVector); // 7.2. Convert the RowVector into Arrow format (an Arrow table in this case).
-  System.out.println(arrowTable.toVectorSchemaRoot().contentToTSVString()); // 7.3. Print the arrow table to stdout.
+  final RowVector rowVector = itr.next(); // 8.1. Get next RowVector returned by Velox.
+  final Table arrowTable = Arrow.toArrowTable(new RootAllocator(), rowVector); // 8.2. Convert the RowVector into Arrow format (an Arrow table in this case).
+  System.out.println(arrowTable.toVectorSchemaRoot().contentToTSVString()); // 8.3. Print the arrow table to stdout.
 }
 
-// 8. Close the JNI session.
+// 9. Close the JNI session.
 jniApi.close();
 memoryManager.close();
 ```
