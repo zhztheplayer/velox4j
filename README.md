@@ -85,6 +85,12 @@ NOTE: The released Jars are built with x86-64 CPU + Ubuntu 20.04 operating syste
 it may not work (say, crash when you use it) as expected on different platforms, especially on
 Linux distributions with lower versions of glibc.
 
+## Build From Source
+
+```bash
+mvn clean install -DskipTests
+```
+
 ## Get started
 
 The following is a brief example of using Velox4j to execute a query:
