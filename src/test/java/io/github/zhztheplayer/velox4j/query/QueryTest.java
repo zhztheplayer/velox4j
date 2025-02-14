@@ -22,6 +22,7 @@ import io.github.zhztheplayer.velox4j.jni.JniApi;
 import io.github.zhztheplayer.velox4j.memory.AllocationListener;
 import io.github.zhztheplayer.velox4j.memory.MemoryManager;
 import io.github.zhztheplayer.velox4j.plan.AggregationNode;
+import io.github.zhztheplayer.velox4j.plan.ProjectNode;
 import io.github.zhztheplayer.velox4j.plan.TableScanNode;
 import io.github.zhztheplayer.velox4j.test.ResourceTests;
 import io.github.zhztheplayer.velox4j.test.SampleQueryTests;
@@ -30,6 +31,7 @@ import io.github.zhztheplayer.velox4j.test.UpIteratorTests;
 import io.github.zhztheplayer.velox4j.type.BigIntType;
 import io.github.zhztheplayer.velox4j.type.RowType;
 import io.github.zhztheplayer.velox4j.type.Type;
+import io.github.zhztheplayer.velox4j.type.VarCharType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -133,6 +135,30 @@ public class QueryTest {
     final Query query = new Query(scanNode, splits, Config.empty(), ConnectorConfig.empty());
     final UpIterator out = query.execute(jniApi);
     SampleQueryTests.assertIterator(out);
+    jniApi.close();
+  }
+
+  @Test
+  public void testProject() {
+    final JniApi jniApi = JniApi.create(memoryManager);
+    final File file = TpchTests.Table.NATION.file();
+    final RowType outputType = TpchTests.Table.NATION.schema();
+    final TableScanNode scanNode = newSampleScanNode(outputType);
+    final List<BoundSplit> splits = List.of(
+        newSampleSplit(scanNode, file)
+    );
+    final ProjectNode projectNode = new ProjectNode("id-2", List.of(scanNode),
+        List.of("n_nationkey", "n_comment"),
+        List.of(
+            FieldAccessTypedExpr.create(new BigIntType(), "n_nationkey"),
+            FieldAccessTypedExpr.create(new VarCharType(), "n_comment")
+        ));
+    final Query query = new Query(projectNode, splits, Config.empty(), ConnectorConfig.empty());
+    final UpIterator itr = query.execute(jniApi);
+    UpIteratorTests.assertIterator(itr)
+        .assertNumRowVectors(1)
+        .assertRowVectorToString(0, ResourceTests.readResourceAsString("query-output/tpch-nation-project-1.tsv"))
+        .run();
     jniApi.close();
   }
 
