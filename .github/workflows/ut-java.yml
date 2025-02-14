@@ -17,6 +17,7 @@ name: Java UT
 
 on:
   pull_request:
+    types: [opened, reopened, synchronize]
     paths:
       - '**/*'
   push:
@@ -38,14 +39,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run setup script
         run: |
-          bash .github/workflows/scripts/java-ut/setup-ubuntu20.sh
+          bash .github/workflows/scripts/ut-java/setup-ubuntu20.sh
       - name: Restore Ccache
         uses: actions/cache/restore@v4
         with:
           path: '${{ env.CCACHE_DIR }}'
-          key: java-ut-ut-ubuntu20-ccache-${{github.sha}}
+          key: ut-java-ut-ubuntu20-ccache-${{github.sha}}
           restore-keys: |
-            java-ut-ut-ubuntu20-ccache-
+            ut-java-ut-ubuntu20-ccache-
       - name: Build and run UTs
         run: |
           mvn clean test
@@ -53,4 +54,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: '${{ env.CCACHE_DIR }}'
-          key: java-ut-ut-ubuntu20-ccache-${{github.sha}}
+          key: ut-java-ut-ubuntu20-ccache-${{github.sha}}
