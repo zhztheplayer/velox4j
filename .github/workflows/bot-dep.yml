@@ -42,5 +42,5 @@ jobs:
           title: '[BOT] Bump velox version'
           body: |
             Update Velox to latest.
-          branch: bump-velox-{{ github.run_number }}
+          branch: bump-velox-${{ github.run_number }}
           sign-commits: true
