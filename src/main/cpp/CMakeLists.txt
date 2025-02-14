@@ -37,17 +37,19 @@ if (NOT VELOX4J_BUILD_TESTING)
 endif ()
 
 # Import Velox.
+set(VELOX_REF_FILE ${CMAKE_CURRENT_LIST_DIR}/velox-ref.txt)
+set(VELOX_REF_HASH_FILE ${CMAKE_CURRENT_LIST_DIR}/velox-ref-hash.txt)
 set(VELOX_REPO facebookincubator/velox)
-set(VELOX_REF d8cac2f0b0960757e61d74eb6f8d462e8637bdf3)
+file(STRINGS ${VELOX_REF_FILE} VELOX_REF)
+file(STRINGS ${VELOX_REF_HASH_FILE} VELOX_SOURCE_URL_MD5)
 set(VELOX_SOURCE_URL "https://github.com/${VELOX_REPO}/archive/${VELOX_REF}.zip")
-set(VELOX_SOURCE_URL_MD5 6725e2ff784604e3e1626d47beb43ff7)
 CPMAddPackage(NAME velox URL ${VELOX_SOURCE_URL} URL_HASH MD5=${VELOX_SOURCE_URL_MD5})
 
 # Import JniHelpers.
 set(JNI_HELPERS_REPO zhztheplayer/JniHelpersCpp)
 set(JNI_HELPERS_REF 7c58a9a24c87758fe94f33bec6a4463971af1e23)
-set(JNI_HELPERS_SOURCE_URL "https://github.com/${JNI_HELPERS_REPO}/archive/${JNI_HELPERS_REF}.zip")
 set(JNI_HELPERS_SOURCE_URL_MD5 3f168384670e0f21a2e2281f91cfb2e1)
+set(JNI_HELPERS_SOURCE_URL "https://github.com/${JNI_HELPERS_REPO}/archive/${JNI_HELPERS_REF}.zip")
 CPMAddPackage(NAME jni-helpers URL ${JNI_HELPERS_SOURCE_URL} URL_HASH MD5=${JNI_HELPERS_SOURCE_URL_MD5})
 target_include_directories(JniHelpers PRIVATE ${JNI_INCLUDE_DIRS})
 target_link_libraries(JniHelpers PRIVATE ${JNI_LIBRARIES})
