@@ -114,10 +114,10 @@ final TableScanNode scanNode = new TableScanNode(
         "connector-hive",
         "table-1",
         false,
-        Collections.emptyList(),
+        List.of(),
         null,
         outputType,
-        Collections.emptyMap()
+        Map.of()
     ),
     toAssignments(outputType)
 );

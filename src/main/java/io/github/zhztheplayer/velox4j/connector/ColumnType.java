@@ -11,7 +11,6 @@ public enum ColumnType {
 
   private final String value;
 
-  @JsonCreator
   ColumnType(String value) {
     this.value = value;
   }
