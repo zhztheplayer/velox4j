@@ -80,10 +80,10 @@ jlong executeQuery(JNIEnv* env, jobject javaThis, jstring queryJson) {
   JNI_METHOD_END(-1L)
 }
 
-jlong upIteratorNext(JNIEnv* env, jobject javaThis, jlong itrId) {
+jlong upIteratorGet(JNIEnv* env, jobject javaThis, jlong itrId) {
   JNI_METHOD_START
   auto itr = ObjectStore::retrieve<UpIterator>(itrId);
-  return sessionOf(env, javaThis)->objectStore()->save(itr->next());
+  return sessionOf(env, javaThis)->objectStore()->save(itr->get());
   JNI_METHOD_END(-1L)
 }
 
@@ -247,21 +247,20 @@ class ExternalStreamAsUpIterator : public UpIterator {
     if (out == nullptr) {
       return State::FINISHED;
     }
-    current_ = out.value();
+    pending_ = out.value();
     return State::AVAILABLE;
   }
 
   RowVectorPtr get() override {
-    VELOX_CHECK(current_ != nullptr);
-    auto out = current_;
-    current_ = nullptr;
-    return current_;
+    VELOX_CHECK(pending_ != nullptr);
+    auto out = pending_;
+    pending_ = nullptr;
+    return pending_;
   };
-
 
  private:
   const std::shared_ptr<ExternalStream> es_;
-  RowVectorPtr current_{nullptr};
+  RowVectorPtr pending_{nullptr};
 };
 
 jlong createUpIteratorWithExternalStream(
@@ -304,7 +303,7 @@ void JniWrapper::initialize(JNIEnv* env) {
   addNativeMethod(
       "executeQuery", (void*)executeQuery, kTypeLong, kTypeString, nullptr);
   addNativeMethod(
-      "upIteratorNext", (void*)upIteratorNext, kTypeLong, kTypeLong, nullptr);
+      "upIteratorGet", (void*)upIteratorGet, kTypeLong, kTypeLong, nullptr);
   addNativeMethod(
       "newExternalStream",
       (void*)newExternalStream,

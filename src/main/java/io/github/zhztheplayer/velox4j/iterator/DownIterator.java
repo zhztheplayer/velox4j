@@ -1,11 +1,6 @@
 package io.github.zhztheplayer.velox4j.iterator;
 
-import io.github.zhztheplayer.velox4j.data.RowVector;
 import io.github.zhztheplayer.velox4j.jni.CalledFromNative;
-import io.github.zhztheplayer.velox4j.jni.JniApi;
-import io.github.zhztheplayer.velox4j.jni.CppObject;
-
-import java.util.Iterator;
 
 public interface DownIterator {
   enum State {
@@ -13,14 +8,14 @@ public interface DownIterator {
     BLOCKED(1),
     FINISHED(2);
 
-    private final int value;
+    private final int id;
 
-    State(int value) {
-      this.value = value;
+    State(int id) {
+      this.id = id;
     }
 
-    public int getValue() {
-      return value;
+    public int getId() {
+      return id;
     }
   }
 

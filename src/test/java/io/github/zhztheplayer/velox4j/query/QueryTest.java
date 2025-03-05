@@ -28,6 +28,7 @@ import io.github.zhztheplayer.velox4j.expression.FieldAccessTypedExpr;
 import io.github.zhztheplayer.velox4j.iterator.DownIterator;
 import io.github.zhztheplayer.velox4j.iterator.DownIterators;
 import io.github.zhztheplayer.velox4j.iterator.UpIterator;
+import io.github.zhztheplayer.velox4j.iterator.UpIterators;
 import io.github.zhztheplayer.velox4j.jni.JniWorkspace;
 import io.github.zhztheplayer.velox4j.join.JoinType;
 import io.github.zhztheplayer.velox4j.memory.AllocationListener;
@@ -136,7 +137,7 @@ public class QueryTest {
         Map.of("max_output_batch_rows", String.format("%d", maxOutputBatchRows))),
         ConnectorConfig.empty());
     final UpIterator itr = session.queryOps().execute(query);
-    final List<RowVector> allRvs = Streams.fromIterator(itr)
+    final List<RowVector> allRvs = Streams.fromIterator(UpIterators.asJavaIterator(itr))
         .map(v -> v.loadedVector().asRowVector())
         .collect(Collectors.toList());
     Assert.assertTrue(allRvs.size() > 1);
@@ -165,7 +166,7 @@ public class QueryTest {
         Map.of("max_output_batch_rows", String.format("%d", maxOutputBatchRows))),
         ConnectorConfig.empty());
     final UpIterator itr = session.queryOps().execute(query);
-    final List<RowVector> allRvs = Streams.fromIterator(itr).collect(Collectors.toList());
+    final List<RowVector> allRvs = Streams.fromIterator(UpIterators.asJavaIterator(itr)).collect(Collectors.toList());
     Assert.assertTrue(allRvs.size() > 1);
     for (int i = 0; i < allRvs.size(); i++) {
       final RowVector rv = allRvs.get(i);
@@ -223,7 +224,7 @@ public class QueryTest {
     final Session session = Velox4j.newSession(memoryManager);
     final String json = SampleQueryTests.readQueryJson();
     final UpIterator sampleIn = session.queryOps().execute(Serde.fromJson(json, Query.class));
-    final DownIterator down = DownIterators.fromJavaIterator(sampleIn);
+    final DownIterator down = DownIterators.fromJavaIterator(UpIterators.asJavaIterator(sampleIn));
     final ExternalStream es = session.externalStreamOps().bind(down);
     final TableScanNode scanNode = new TableScanNode(
         "id-1",
