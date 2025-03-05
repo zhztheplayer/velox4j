@@ -17,7 +17,7 @@ public final class DownIterators {
     }
 
     @Override
-    public State advance() {
+    public State advance0() {
       if (!itr.hasNext()) {
         return State.FINISHED;
       }
@@ -25,7 +25,7 @@ public final class DownIterators {
     }
 
     @Override
-    public long next() {
+    public long get() {
       return itr.next().id();
     }
   }

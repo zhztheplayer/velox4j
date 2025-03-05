@@ -16,7 +16,8 @@ public final class UpIterators {
 
     @Override
     public boolean hasNext() {
-      return upIterator.advance() != UpIterator.State.FINISHED;
+      final UpIterator.State state = upIterator.advance();
+      return state != UpIterator.State.FINISHED;
     }
 
     @Override

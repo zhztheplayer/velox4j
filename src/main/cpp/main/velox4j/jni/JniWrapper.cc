@@ -261,7 +261,7 @@ class ExternalStreamAsUpIterator : public UpIterator {
     VELOX_CHECK_NOT_NULL(pending_, "No pending row vector to return. Try calling advance() or wait() first");
     auto out = pending_;
     pending_ = nullptr;
-    return pending_;
+    return out;
   };
 
  private:

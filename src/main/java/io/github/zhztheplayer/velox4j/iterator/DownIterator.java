@@ -20,8 +20,12 @@ public interface DownIterator {
   }
 
   @CalledFromNative
-  State advance();
+  default int advance() {
+      return advance0().getId();
+  }
+
+  State advance0();
 
   @CalledFromNative
-  long next();
+  long get();
 }
