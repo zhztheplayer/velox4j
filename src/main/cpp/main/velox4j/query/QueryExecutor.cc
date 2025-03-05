@@ -90,19 +90,23 @@ class Out : public UpIterator {
     }
   }
 
-  State advance() override {}
-
-  void wait() override {
+  State advance() override {
     VELOX_CHECK_NULL(pending_);
-    // Task was blocked. Wait for next output.
+    return advance0(false);
   }
 
-  RowVectorPtr get() {
-    if (pending_ != nullptr) {
-      auto out = pending_;
-      pending_ = nullptr;
-      return out;
-    }
+  State wait() override {
+    VELOX_CHECK_NULL(pending_);
+    return advance0(true);
+  }
+
+  RowVectorPtr get() override {
+    VELOX_CHECK_NOT_NULL(
+        pending_,
+        "No pending row vector to return. Try calling advance() or wait() first");
+    auto out = pending_;
+    pending_ = nullptr;
+    return out;
   }
 
  private:

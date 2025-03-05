@@ -70,14 +70,14 @@ jint upIteratorAdvance(JNIEnv* env, jobject javaThis, jlong itrId) {
   JNI_METHOD_START
   auto itr = ObjectStore::retrieve<UpIterator>(itrId);
   return static_cast<jint>(itr->advance());
-  JNI_METHOD_END(false)
+  JNI_METHOD_END(-1)
 }
 
-void upIteratorWait(JNIEnv* env, jobject javaThis, jlong itrId) {
+jint upIteratorWait(JNIEnv* env, jobject javaThis, jlong itrId) {
   JNI_METHOD_START
   auto itr = ObjectStore::retrieve<UpIterator>(itrId);
-  itr->wait();
-  JNI_METHOD_END(false)
+  return static_cast<jint>(itr->wait());
+  JNI_METHOD_END(-1)
 }
 
 jstring variantInferType(JNIEnv* env, jobject javaThis, jstring json) {
@@ -239,7 +239,7 @@ void StaticJniWrapper::initialize(JNIEnv* env) {
       kTypeLong,
       nullptr);
   addNativeMethod(
-      "upIteratorWait", (void*)upIteratorWait, kTypeVoid, kTypeLong, nullptr);
+      "upIteratorWait", (void*)upIteratorWait, kTypeInt, kTypeLong, nullptr);
   addNativeMethod(
       "variantInferType",
       (void*)variantInferType,

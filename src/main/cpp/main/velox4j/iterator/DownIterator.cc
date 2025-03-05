@@ -70,7 +70,7 @@ std::optional<RowVectorPtr> DownIterator::read() {
       return nullptr;
     }
   }
-  VELOX_FAIL("Unrecoginizable state: {}", state);
+  VELOX_FAIL("Unrecoginizable state: {}", std::to_string(static_cast<int32_t>(state)));
 }
 
 DownIterator::State DownIterator::advance() {

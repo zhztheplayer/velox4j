@@ -240,6 +240,7 @@ class ExternalStreamAsUpIterator : public UpIterator {
       : es_(es) {}
 
   State advance() override {
+    VELOX_CHECK_NULL(pending_);
     auto out = es_->read();
     if (out == std::nullopt) {
       return State::BLOCKED;
@@ -251,8 +252,13 @@ class ExternalStreamAsUpIterator : public UpIterator {
     return State::AVAILABLE;
   }
 
+  State wait() override {
+    VELOX_CHECK_NULL(pending_);
+    VELOX_NYI("Not implemented: {}", "ExternalStreamAsUpIterator::wait");
+  }
+
   RowVectorPtr get() override {
-    VELOX_CHECK(pending_ != nullptr);
+    VELOX_CHECK_NOT_NULL(pending_, "No pending row vector to return. Try calling advance() or wait() first");
     auto out = pending_;
     pending_ = nullptr;
     return pending_;

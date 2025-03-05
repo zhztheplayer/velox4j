@@ -53,6 +53,10 @@ public class StaticJniApi {
     return UpIterator.State.get(jni.upIteratorAdvance(itr.id()));
   }
 
+  public UpIterator.State upIteratorWait(UpIterator itr) {
+    return UpIterator.State.get(jni.upIteratorWait(itr.id()));
+  }
+
   public Type variantInferType(Variant variant) {
     final String variantJson = Serde.toJson(variant);
     final String typeJson = jni.variantInferType(variantJson);

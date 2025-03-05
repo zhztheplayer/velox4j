@@ -24,6 +24,7 @@ public class StaticJniWrapper {
 
   // For UpIterator.
   native int upIteratorAdvance(long id);
+  native int upIteratorWait(long id);
 
   // For Variant.
   native String variantInferType(String json);
