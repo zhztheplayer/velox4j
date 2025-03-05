@@ -43,15 +43,15 @@ public class UpIterator implements CppObject {
     this.id = id;
   }
 
-  State advance() {
+  public State advance() {
     return StaticJniApi.get().upIteratorAdvance(this);
   }
 
-  State waitFor() {
+  public State waitFor() {
     return StaticJniApi.get().upIteratorWait(this);
   }
 
-  RowVector get() {
+  public RowVector get() {
     return jniApi.upIteratorGet(this);
   }
 

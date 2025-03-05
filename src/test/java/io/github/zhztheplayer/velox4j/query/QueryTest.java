@@ -42,6 +42,7 @@ import io.github.zhztheplayer.velox4j.plan.ProjectNode;
 import io.github.zhztheplayer.velox4j.plan.TableScanNode;
 import io.github.zhztheplayer.velox4j.plan.TableWriteNode;
 import io.github.zhztheplayer.velox4j.serde.Serde;
+import io.github.zhztheplayer.velox4j.serde.SerdeTests;
 import io.github.zhztheplayer.velox4j.session.Session;
 import io.github.zhztheplayer.velox4j.sort.SortOrder;
 import io.github.zhztheplayer.velox4j.test.ResourceTests;
@@ -63,12 +64,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 public class QueryTest {
@@ -220,7 +217,7 @@ public class QueryTest {
   }
 
   @Test
-  public void testExternalStream() {
+  public void testExternalStreamFromJavaIterator() {
     final Session session = Velox4j.newSession(memoryManager);
     final String json = SampleQueryTests.readQueryJson();
     final UpIterator sampleIn = session.queryOps().execute(Serde.fromJson(json, Query.class));
@@ -242,6 +239,37 @@ public class QueryTest {
     final Query query = new Query(scanNode, splits, Config.empty(), ConnectorConfig.empty());
     final UpIterator out = session.queryOps().execute(query);
     SampleQueryTests.assertIterator(out);
+    session.close();
+  }
+
+  @Test
+  public void testExternalStreamFromQueue() {
+    final Session session = Velox4j.newSession(memoryManager);
+    final Queue<RowVector> queue = new LinkedList<>();
+    final DownIterator down = DownIterators.fromQueue(queue);
+    final ExternalStream es = session.externalStreamOps().bind(down);
+    final TableScanNode scanNode = new TableScanNode(
+        "id-1",
+        SampleQueryTests.getSchema(),
+        new ExternalStreamTableHandle("connector-external-stream"),
+        List.of()
+    );
+    final List<BoundSplit> splits = List.of(
+        new BoundSplit(
+            "id-1",
+            -1,
+            new ExternalStreamConnectorSplit("connector-external-stream", es.id())
+        )
+    );
+    final Query query = new Query(scanNode, splits, Config.empty(), ConnectorConfig.empty());
+    final UpIterator out = session.queryOps().execute(query);
+
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+
+    queue.add(SerdeTests.newSampleRowVector(session));
+
+
     session.close();
   }
 
