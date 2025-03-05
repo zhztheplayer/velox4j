@@ -239,16 +239,29 @@ class ExternalStreamAsUpIterator : public UpIterator {
   explicit ExternalStreamAsUpIterator(const std::shared_ptr<ExternalStream>& es)
       : es_(es) {}
 
-  bool hasNext() override {
-    return es_->hasNext();
+  State advance() override {
+    auto out = es_->read();
+    if (out == std::nullopt) {
+      return State::BLOCKED;
+    }
+    if (out == nullptr) {
+      return State::FINISHED;
+    }
+    current_ = out.value();
+    return State::AVAILABLE;
   }
 
-  RowVectorPtr next() override {
-    return es_->next();
-  }
+  RowVectorPtr get() override {
+    VELOX_CHECK(current_ != nullptr);
+    auto out = current_;
+    current_ = nullptr;
+    return current_;
+  };
+
 
  private:
-  std::shared_ptr<ExternalStream> es_;
+  const std::shared_ptr<ExternalStream> es_;
+  RowVectorPtr current_{nullptr};
 };
 
 jlong createUpIteratorWithExternalStream(
