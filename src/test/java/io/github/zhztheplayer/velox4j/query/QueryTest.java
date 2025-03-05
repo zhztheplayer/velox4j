@@ -269,6 +269,7 @@ public class QueryTest {
 
     queue.add(SerdeTests.newSampleRowVector(session));
 
+    // TODO
 
     session.close();
   }
