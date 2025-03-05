@@ -7,20 +7,26 @@ import io.github.zhztheplayer.velox4j.jni.CppObject;
 
 import java.util.Iterator;
 
-public class DownIterator {
-  private final Iterator<RowVector> delegated;
+public interface DownIterator {
+  enum State {
+    AVAILABLE(0),
+    BLOCKED(1),
+    FINISHED(2);
 
-  public DownIterator(Iterator<RowVector> delegated) {
-    this.delegated = delegated;
+    private final int value;
+
+    State(int value) {
+      this.value = value;
+    }
+
+    public int getValue() {
+      return value;
+    }
   }
 
   @CalledFromNative
-  public boolean hasNext() {
-    return delegated.hasNext();
-  }
+  State advance();
 
   @CalledFromNative
-  public long next() {
-    return delegated.next().id();
-  }
+  long next();
 }

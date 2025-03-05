@@ -35,8 +35,8 @@ const char* DownIteratorJniWrapper::getCanonicalName() const {
 void DownIteratorJniWrapper::initialize(JNIEnv* env) {
   JavaClass::setClass(env);
 
-  cacheMethod(env, "hasNext", kTypeBool, nullptr);
-  cacheMethod(env, "next", kTypeLong, nullptr);
+  cacheMethod(env, "advance", kTypeInt, nullptr);
+  cacheMethod(env, "get", kTypeLong, nullptr);
 
   registerNativeMethods(env);
 }
@@ -55,19 +55,37 @@ DownIterator::~DownIterator() {
   }
 }
 
-bool DownIterator::hasNext() {
-  auto* env = getLocalJNIEnv();
-  static const auto* clazz = jniClassRegistry()->get(kClassName);
-  static jmethodID methodId = clazz->getMethod("hasNext");
-  const jboolean hasNext = env->CallBooleanMethod(ref_, methodId);
-  checkException(env);
-  return hasNext;
+std::optional<RowVectorPtr> DownIterator::read() {
+  const State state = advance();
+  switch (state) {
+    case State::AVAILABLE: {
+      auto vector = get();
+      VELOX_CHECK_NOT_NULL(vector);
+      return vector;
+    }
+    case State::BLOCKED: {
+      return std::nullopt;
+    }
+    case State::FINISHED: {
+      return nullptr;
+    }
+  }
+  VELOX_FAIL("Unrecoginizable state: {}", state);
 }
 
-RowVectorPtr DownIterator::next() {
+DownIterator::State DownIterator::advance() {
   auto* env = getLocalJNIEnv();
   static const auto* clazz = jniClassRegistry()->get(kClassName);
-  static jmethodID methodId = clazz->getMethod("next");
+  static jmethodID methodId = clazz->getMethod("advance");
+  const State state = static_cast<State>(env->CallIntMethod(ref_, methodId));
+  checkException(env);
+  return state;
+}
+
+RowVectorPtr DownIterator::get() {
+  auto* env = getLocalJNIEnv();
+  static const auto* clazz = jniClassRegistry()->get(kClassName);
+  static jmethodID methodId = clazz->getMethod("get");
   const jlong rvId = env->CallLongMethod(ref_, methodId);
   checkException(env);
   return ObjectStore::retrieve<RowVector>(rvId);

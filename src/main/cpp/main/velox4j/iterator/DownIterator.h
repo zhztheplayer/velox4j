@@ -39,6 +39,8 @@ class DownIteratorJniWrapper final : public spotify::jni::JavaClass {
 
 class DownIterator : public ExternalStream {
  public:
+  enum class State { AVAILABLE = 0, BLOCKED = 1, FINISHED = 2 };
+
   // CTOR.
   DownIterator(JNIEnv* env, jobject ref);
 
@@ -51,11 +53,12 @@ class DownIterator : public ExternalStream {
   // DTOR.
   ~DownIterator() override;
 
-  bool hasNext() override;
-
-  facebook::velox::RowVectorPtr next() override;
+  std::optional<facebook::velox::RowVectorPtr> read() override;
 
  private:
+  State advance();
+  facebook::velox::RowVectorPtr get();
+
   jobject ref_;
 };
 
