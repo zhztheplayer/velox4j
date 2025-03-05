@@ -68,6 +68,7 @@ public class PlanNodeSerdeTest {
 
   @Test
   public void testValuesNode() {
+    // The case fails in debug build. Should investigate.
     final Session session = Velox4j.newSession(memoryManager);
     final PlanNode values = ValuesNode.create("id-1",
         List.of(SerdeTests.newSampleRowVector(session)), true, 1);
