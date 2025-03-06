@@ -54,6 +54,8 @@ DownIterator::~DownIterator() {
     static const auto* clazz = jniClassRegistry()->get(kClassName);
     static jmethodID methodId = clazz->getMethod("close");
     env->CallVoidMethod(ref_, methodId);
+    checkException(env);
+    waitExecutor_->join();
     getLocalJNIEnv()->DeleteGlobalRef(ref_);
   } catch (const std::exception& ex) {
     LOG(WARNING)
@@ -120,7 +122,7 @@ DownIterator::State DownIterator::advance() {
   auto* env = getLocalJNIEnv();
   static const auto* clazz = jniClassRegistry()->get(kClassName);
   static jmethodID methodId = clazz->getMethod("advance");
-  const State state = static_cast<State>(env->CallIntMethod(ref_, methodId));
+  const auto state = static_cast<State>(env->CallIntMethod(ref_, methodId));
   checkException(env);
   return state;
 }

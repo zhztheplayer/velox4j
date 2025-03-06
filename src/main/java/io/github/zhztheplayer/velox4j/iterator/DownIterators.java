@@ -1,5 +1,6 @@
 package io.github.zhztheplayer.velox4j.iterator;
 
+import com.google.common.base.Preconditions;
 import io.github.zhztheplayer.velox4j.data.RowVector;
 import io.github.zhztheplayer.velox4j.exception.VeloxException;
 
@@ -7,6 +8,7 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class DownIterators {
   public static DownIterator fromJavaIterator(Iterator<RowVector> itr) {
@@ -80,9 +82,11 @@ public final class DownIterators {
     }
   }
 
+  // Velox should manage the thread safety for this class in passing.
   private static class FromBlockingQueue implements DownIterator {
     private final BlockingQueue<RowVector> queue;
     private RowVector pending = null;
+    private AtomicBoolean closed = new AtomicBoolean(false);
 
     public FromBlockingQueue(BlockingQueue<RowVector> queue) {
       this.queue = queue;
@@ -101,7 +105,15 @@ public final class DownIterators {
 
     @Override
     public void waitFor() throws InterruptedException {
-      pending = queue.take();
+      while (true) {
+        if (pending != null) {
+          return;
+        }
+        if (closed.get()) {
+          Thread.currentThread().interrupt();
+        }
+        pending = queue.poll(100L, TimeUnit.MILLISECONDS);
+      }
     }
 
     @Override
@@ -116,7 +128,8 @@ public final class DownIterators {
 
     @Override
     public void close() {
-
+      Preconditions.checkState(closed.compareAndSet(false, true),
+          "Already closed");
     }
   }
 }

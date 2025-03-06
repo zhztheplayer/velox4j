@@ -409,6 +409,7 @@ public class QueryTest {
       control.wait();
     }
 
+    testThread.join();
     session.close();
   }
 
