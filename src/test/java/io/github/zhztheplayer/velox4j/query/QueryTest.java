@@ -43,7 +43,6 @@ import io.github.zhztheplayer.velox4j.plan.ProjectNode;
 import io.github.zhztheplayer.velox4j.plan.TableScanNode;
 import io.github.zhztheplayer.velox4j.plan.TableWriteNode;
 import io.github.zhztheplayer.velox4j.serde.Serde;
-import io.github.zhztheplayer.velox4j.serde.SerdeTests;
 import io.github.zhztheplayer.velox4j.session.Session;
 import io.github.zhztheplayer.velox4j.sort.SortOrder;
 import io.github.zhztheplayer.velox4j.test.ResourceTests;
