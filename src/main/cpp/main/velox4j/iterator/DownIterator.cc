@@ -44,6 +44,7 @@ void DownIteratorJniWrapper::initialize(JNIEnv* env) {
 
 DownIterator::DownIterator(JNIEnv* env, jobject ref) : ExternalStream() {
   ref_ = env->NewGlobalRef(ref);
+  waitExecutor_ = std::make_unique<folly::IOThreadPoolExecutor>(1);
 }
 
 DownIterator::~DownIterator() {
@@ -56,8 +57,13 @@ DownIterator::~DownIterator() {
   }
 }
 
-std::optional<RowVectorPtr> DownIterator::read(
-    facebook::velox::ContinueFuture& future) {
+std::optional<RowVectorPtr> DownIterator::read(ContinueFuture& future) {
+  {
+    std::lock_guard l(mutex_);
+    VELOX_CHECK(
+        promises_.empty(),
+        "DownIterator::read is called while the last read operation is awaiting. Aborting.");
+  }
   const State state = advance();
   switch (state) {
     case State::AVAILABLE: {
@@ -68,12 +74,23 @@ std::optional<RowVectorPtr> DownIterator::read(
     case State::BLOCKED: {
       auto [readPromise, readFuture] =
           makeVeloxContinuePromiseContract(fmt::format("DownIterator::read"));
-      future =
-          std::move(readFuture).defer([this](folly::Try<folly::Unit>&& result) {
-            result.throwUnlessValue();
-            wait();
-          });
-      readPromise.setValue();
+      future = std::move(readFuture);
+      {
+        std::lock_guard l(mutex_);
+        VELOX_CHECK(promises_.empty());
+        promises_.emplace_back(std::move(readPromise));
+      }
+      waitExecutor_->add([this]() -> void {
+        wait();
+        {
+          std::lock_guard l(mutex_);
+          VELOX_CHECK(promises_.size() == 1);
+          for (auto& p : promises_) {
+            p.setValue();
+          }
+          promises_.clear();
+        }
+      });
       return std::nullopt;
     }
     case State::FINISHED: {
