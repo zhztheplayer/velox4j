@@ -57,6 +57,7 @@ import io.github.zhztheplayer.velox4j.type.RowType;
 import io.github.zhztheplayer.velox4j.type.Type;
 import io.github.zhztheplayer.velox4j.type.VarCharType;
 import io.github.zhztheplayer.velox4j.variant.BigIntValue;
+import io.github.zhztheplayer.velox4j.variant.BooleanValue;
 import io.github.zhztheplayer.velox4j.write.TableWriteTraits;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -257,7 +258,7 @@ public class QueryTest {
     );
     final List<BoundSplit> splits = List.of(
         new BoundSplit(
-            "id-1",
+            scanNode.getId(),
             -1,
             new ExternalStreamConnectorSplit("connector-external-stream", es.id())
         )
@@ -312,7 +313,7 @@ public class QueryTest {
     );
     final List<BoundSplit> splits = List.of(
         new BoundSplit(
-            "id-1",
+            scanNode.getId(),
             -1,
             new ExternalStreamConnectorSplit("connector-external-stream", es.id())
         )
@@ -406,6 +407,54 @@ public class QueryTest {
       control.notifyAll();
       control.wait();
     }
+
+    session.close();
+  }
+
+
+  @Test
+  public void testExternalStreamFromQueueWithInputFiltered() {
+    final Session session = Velox4j.newSession(memoryManager);
+    final Queue<RowVector> queue = new LinkedList<>();
+    final DownIterator down = DownIterators.fromQueue(queue);
+    final ExternalStream es = session.externalStreamOps().bind(down);
+    final TableScanNode scanNode = new TableScanNode(
+        "id-1",
+        SampleQueryTests.getSchema(),
+        new ExternalStreamTableHandle("connector-external-stream"),
+        List.of()
+    );
+    final FilterNode filterNode = new FilterNode(
+        "id-2",
+        List.of(scanNode),
+        ConstantTypedExpr.create(new BooleanValue(false))
+    );
+    final List<BoundSplit> splits = List.of(
+        new BoundSplit(
+            scanNode.getId(),
+            -1,
+            new ExternalStreamConnectorSplit("connector-external-stream", es.id())
+        )
+    );
+    final Query query = new Query(filterNode, splits, Config.empty(), ConnectorConfig.empty());
+    final UpIterator out = session.queryOps().execute(query);
+    final RowVector rv = BaseVectorTests.newSampleRowVector(session);
+
+    // No input added, the up-iterator is considered blocked.
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+
+    // Add one input.
+    queue.add(rv);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+
+    // Add multiple inputs at a time.
+    queue.add(rv);
+    queue.add(rv);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
     session.close();
   }
