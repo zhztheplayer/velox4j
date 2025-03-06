@@ -274,6 +274,7 @@ public class QueryTest {
 
     // Add one input.
     queue.add(rv);
+    out.waitFor();
     Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
     Assert.assertThrows(VeloxException.class, out::advance);
     BaseVectorTests.assertEquals(rv, out.get());
@@ -284,6 +285,7 @@ public class QueryTest {
     // Add multiple inputs at a time.
     queue.add(rv);
     queue.add(rv);
+    out.waitFor();
     Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
     Assert.assertThrows(VeloxException.class, out::advance);
     BaseVectorTests.assertEquals(rv, out.get());
@@ -332,7 +334,7 @@ public class QueryTest {
     final Thread testThread = new Thread(() -> {
       try {
         synchronized (control) {
-          // Signals the main thread to add one input after 1s.
+          // Signals the main thread to add one input after 500ms.
           control.notifyAll();
           control.wait();
 
@@ -346,7 +348,7 @@ public class QueryTest {
           Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
           Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
-          // Signals the main thread to add two inputs after 1s.
+          // Signals the main thread to add two inputs after 500ms.
           control.notifyAll();
           control.wait();
 
@@ -380,7 +382,7 @@ public class QueryTest {
       // Add one input after 1s.
       new Thread(() -> {
         try {
-          Thread.sleep(1000L);
+          Thread.sleep(500L);
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
@@ -395,7 +397,7 @@ public class QueryTest {
       // Add two inputs at a time after 1s.
       new Thread(() -> {
         try {
-          Thread.sleep(1000L);
+          Thread.sleep(500L);
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
@@ -413,7 +415,7 @@ public class QueryTest {
 
 
   @Test
-  public void testExternalStreamFromQueueWithInputFiltered() {
+  public void testExternalStreamFromQueueWithInputFiltered() throws InterruptedException {
     final Session session = Velox4j.newSession(memoryManager);
     final Queue<RowVector> queue = new LinkedList<>();
     final DownIterator down = DownIterators.fromQueue(queue);
@@ -447,12 +449,14 @@ public class QueryTest {
 
     // Add one input.
     queue.add(rv);
+    Thread.sleep(500L);
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
     // Add multiple inputs at a time.
     queue.add(rv);
     queue.add(rv);
+    Thread.sleep(500L);
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
