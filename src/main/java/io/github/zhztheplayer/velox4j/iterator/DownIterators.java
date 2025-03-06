@@ -30,6 +30,11 @@ public final class DownIterators {
     }
 
     @Override
+    public void waitFor() {
+
+    }
+
+    @Override
     public long get() {
       return itr.next().id();
     }
@@ -48,6 +53,11 @@ public final class DownIterators {
         return State.BLOCKED;
       }
       return State.AVAILABLE;
+    }
+
+    @Override
+    public void waitFor() {
+
     }
 
     @Override

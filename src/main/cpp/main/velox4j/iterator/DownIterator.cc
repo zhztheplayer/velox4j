@@ -36,6 +36,7 @@ void DownIteratorJniWrapper::initialize(JNIEnv* env) {
   JavaClass::setClass(env);
 
   cacheMethod(env, "advance", kTypeInt, nullptr);
+  cacheMethod(env, "waitFor", kTypeVoid, nullptr);
   cacheMethod(env, "get", kTypeLong, nullptr);
 
   registerNativeMethods(env);
@@ -55,7 +56,8 @@ DownIterator::~DownIterator() {
   }
 }
 
-std::optional<RowVectorPtr> DownIterator::read() {
+std::optional<RowVectorPtr> DownIterator::read(
+    facebook::velox::ContinueFuture& future) {
   const State state = advance();
   switch (state) {
     case State::AVAILABLE: {
@@ -64,13 +66,22 @@ std::optional<RowVectorPtr> DownIterator::read() {
       return vector;
     }
     case State::BLOCKED: {
+      auto [readPromise, readFuture] =
+          makeVeloxContinuePromiseContract(fmt::format("DownIterator::read"));
+      future =
+          std::move(readFuture).defer([this](folly::Try<folly::Unit>&& result) {
+            result.throwUnlessValue();
+            wait();
+          });
+      readPromise.setValue();
       return std::nullopt;
     }
     case State::FINISHED: {
       return nullptr;
     }
   }
-  VELOX_FAIL("Unrecoginizable state: {}", std::to_string(static_cast<int32_t>(state)));
+  VELOX_FAIL(
+      "Unrecognizable state: {}", std::to_string(static_cast<int32_t>(state)));
 }
 
 DownIterator::State DownIterator::advance() {
@@ -80,6 +91,14 @@ DownIterator::State DownIterator::advance() {
   const State state = static_cast<State>(env->CallIntMethod(ref_, methodId));
   checkException(env);
   return state;
+}
+
+void DownIterator::wait() {
+  auto* env = getLocalJNIEnv();
+  static const auto* clazz = jniClassRegistry()->get(kClassName);
+  static jmethodID methodId = clazz->getMethod("waitFor");
+  env->CallVoidMethod(ref_, methodId);
+  checkException(env);
 }
 
 RowVectorPtr DownIterator::get() {

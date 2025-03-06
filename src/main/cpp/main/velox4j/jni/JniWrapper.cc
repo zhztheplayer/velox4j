@@ -241,10 +241,13 @@ class ExternalStreamAsUpIterator : public UpIterator {
 
   State advance() override {
     VELOX_CHECK_NULL(pending_);
-    auto out = es_->read();
+    ContinueFuture future = ContinueFuture::makeEmpty();
+    auto out = es_->read(future);
     if (out == std::nullopt) {
+      VELOX_CHECK(future.valid());
       return State::BLOCKED;
     }
+      VELOX_CHECK(!future.valid());
     if (out == nullptr) {
       return State::FINISHED;
     }
@@ -252,7 +255,7 @@ class ExternalStreamAsUpIterator : public UpIterator {
     return State::AVAILABLE;
   }
 
-  State wait() override {
+  void wait() override {
     VELOX_CHECK_NULL(pending_);
     VELOX_NYI("Not implemented: {}", "ExternalStreamAsUpIterator::wait");
   }

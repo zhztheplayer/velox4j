@@ -24,8 +24,10 @@ public interface DownIterator {
       return advance0().getId();
   }
 
-  State advance0();
+  void waitFor();
 
   @CalledFromNative
   long get();
+
+  State advance0();
 }

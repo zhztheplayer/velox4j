@@ -91,16 +91,23 @@ class Out : public UpIterator {
   }
 
   State advance() override {
+    if (hasPendingState) {
+      hasPendingState = false;
+      return pendingState_;
+    }
     VELOX_CHECK_NULL(pending_);
     return advance0(false);
   }
 
-  State wait() override {
+  void wait() override {
+    VELOX_CHECK(!hasPendingState);
     VELOX_CHECK_NULL(pending_);
-    return advance0(true);
+    pendingState_ = advance0(true);
+    hasPendingState = true;
   }
 
   RowVectorPtr get() override {
+    VELOX_CHECK(!hasPendingState);
     VELOX_CHECK_NOT_NULL(
         pending_,
         "Out: No pending row vector to return. Try calling advance() or wait() first");
@@ -111,7 +118,6 @@ class Out : public UpIterator {
 
  private:
   State advance0(bool wait) {
-    VELOX_CHECK_NULL(pending_);
     while (true) {
       auto future = ContinueFuture::makeEmpty();
       auto out = task_->next(&future);
@@ -163,6 +169,8 @@ class Out : public UpIterator {
   const std::string queryJson_;
   std::shared_ptr<exec::Task> task_;
   std::vector<std::shared_ptr<exec::Driver>> drivers_{};
+  bool hasPendingState{false};
+  State pendingState_;
   RowVectorPtr pending_{nullptr};
 };
 } // namespace

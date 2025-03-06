@@ -53,10 +53,12 @@ class DownIterator : public ExternalStream {
   // DTOR.
   ~DownIterator() override;
 
-  std::optional<facebook::velox::RowVectorPtr> read() override;
+  std::optional<facebook::velox::RowVectorPtr> read(
+      facebook::velox::ContinueFuture& future) override;
 
  private:
   State advance();
+  void wait();
   facebook::velox::RowVectorPtr get();
 
   jobject ref_;

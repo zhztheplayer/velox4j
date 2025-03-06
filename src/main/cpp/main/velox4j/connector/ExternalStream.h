@@ -46,7 +46,8 @@ class ExternalStream {
   // DTOR.
   virtual ~ExternalStream() = default;
 
-  virtual std::optional<facebook::velox::RowVectorPtr> read() = 0;
+  virtual std::optional<facebook::velox::RowVectorPtr> read(
+      facebook::velox::ContinueFuture& future) = 0;
 };
 
 class ExternalStreamConnectorSplit

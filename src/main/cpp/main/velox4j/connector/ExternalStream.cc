@@ -141,7 +141,7 @@ std::optional<RowVectorPtr> ExternalStreamDataSource::next(
           driverThreadCtx,
           "ExternalStreamDataSource::next() is not called from a driver thread");
       SuspendedSection ss(driverThreadCtx->driverCtx()->driver);
-      const std::optional<RowVectorPtr> vector = current_->read();
+      const std::optional<RowVectorPtr> vector = current_->read(future);
       if (vector == nullptr) {
         // End of the current stream.
         current_ = nullptr;

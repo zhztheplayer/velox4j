@@ -53,8 +53,8 @@ public class StaticJniApi {
     return UpIterator.State.get(jni.upIteratorAdvance(itr.id()));
   }
 
-  public UpIterator.State upIteratorWait(UpIterator itr) {
-    return UpIterator.State.get(jni.upIteratorWait(itr.id()));
+  public void upIteratorWait(UpIterator itr) {
+    jni.upIteratorWait(itr.id());
   }
 
   public Type variantInferType(Variant variant) {
