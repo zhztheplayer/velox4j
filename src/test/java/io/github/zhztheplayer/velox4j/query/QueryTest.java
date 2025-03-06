@@ -299,7 +299,7 @@ public class QueryTest {
 
 
   @Test
-  public void testExternalStreamFromBlockingQueue() {
+  public void testExternalStreamFromBlockingQueue() throws InterruptedException {
     final Session session = Velox4j.newSession(memoryManager);
     final Queue<RowVector> queue = new LinkedBlockingQueue<>();
     final DownIterator down = DownIterators.fromQueue(queue);
@@ -321,37 +321,91 @@ public class QueryTest {
     final UpIterator out = session.queryOps().execute(query);
     final RowVector rv = BaseVectorTests.newSampleRowVector(session);
 
+    final Object control = new Object();
+
     // No input added, the up-iterator is considered blocked.
     Assert.assertThrows(VeloxException.class, out::get);
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
-    // The wait calls should not throw.
-    out.waitFor();
-    out.waitFor();
+    final Thread testThread = new Thread(() -> {
+      try {
+        synchronized (control) {
+          // Signals the main thread to add one input after 1s.
+          control.notifyAll();
+          control.wait();
 
-    // Add one input.
-    queue.add(rv);
-    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
-    Assert.assertThrows(VeloxException.class, out::advance);
-    BaseVectorTests.assertEquals(rv, out.get());
-    Assert.assertThrows(VeloxException.class, out::get);
-    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
-    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+          // The wait calls should not throw.
+          out.waitFor();
+          Assert.assertThrows(VeloxException.class, out::waitFor);
+          Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+          Assert.assertThrows(VeloxException.class, out::advance);
+          BaseVectorTests.assertEquals(rv, out.get());
+          Assert.assertThrows(VeloxException.class, out::get);
+          Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+          Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
-    // Add multiple inputs at a time.
-    queue.add(rv);
-    queue.add(rv);
-    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
-    Assert.assertThrows(VeloxException.class, out::advance);
-    BaseVectorTests.assertEquals(rv, out.get());
-    Assert.assertThrows(VeloxException.class, out::get);
-    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
-    Assert.assertThrows(VeloxException.class, out::advance);
-    BaseVectorTests.assertEquals(rv, out.get());
-    Assert.assertThrows(VeloxException.class, out::get);
-    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
-    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+          // Signals the main thread to add two inputs after 1s.
+          control.notifyAll();
+          control.wait();
+
+          // The wait calls should not throw.
+          out.waitFor();
+          Assert.assertThrows(VeloxException.class, out::waitFor);
+          Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+          Assert.assertThrows(VeloxException.class, out::advance);
+          BaseVectorTests.assertEquals(rv, out.get());
+          Assert.assertThrows(VeloxException.class, out::get);
+          Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+          Assert.assertThrows(VeloxException.class, out::advance);
+          BaseVectorTests.assertEquals(rv, out.get());
+          Assert.assertThrows(VeloxException.class, out::get);
+          Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+          Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+
+          // Signals the main thread that the test has passed.
+          control.notifyAll();
+        }
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    });
+
+    synchronized (control) {
+      // This makes sure test thread starts processing after control.wait().
+      testThread.start();
+      control.wait();
+
+      // Add one input after 1s.
+      new Thread(() -> {
+        try {
+          Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        queue.add(rv);
+      }).start();
+
+
+      // Signals the test thread to start checking the output.
+      control.notifyAll();
+      control.wait();
+
+      // Add two inputs at a time after 1s.
+      new Thread(() -> {
+        try {
+          Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        queue.add(rv);
+        queue.add(rv);
+      }).start();
+
+      // Signals the test thread to start checking the output.
+      control.notifyAll();
+      control.wait();
+    }
 
     session.close();
   }
@@ -522,7 +576,8 @@ public class QueryTest {
         .run();
 
     // Read the file we just wrote.
-    final File writtenFile = folder.toPath().resolve(fileName).toFile();;
+    final File writtenFile = folder.toPath().resolve(fileName).toFile();
+    ;
     final TableScanNode scanNode2 = newSampleTableScanNode("id-1", schema);
     final List<BoundSplit> splits2 = List.of(
         newSampleSplit(scanNode2, writtenFile)
