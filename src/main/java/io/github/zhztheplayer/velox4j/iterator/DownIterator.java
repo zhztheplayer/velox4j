@@ -23,11 +23,12 @@ public interface DownIterator {
   default int advance() {
       return advance0().getId();
   }
-
-  void waitFor();
-
+  @CalledFromNative
+  void waitFor() throws InterruptedException;
   @CalledFromNative
   long get();
+  @CalledFromNative
+  void close();
 
   State advance0();
 }

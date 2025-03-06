@@ -66,6 +66,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 public class QueryTest {
@@ -261,21 +262,96 @@ public class QueryTest {
             new ExternalStreamConnectorSplit("connector-external-stream", es.id())
         )
     );
-    final ProjectNode projNode = new ProjectNode(
-        "id-2",
-        List.of(scanNode),
-        List.of("a0"),
-        List.of(FieldAccessTypedExpr.create(new BigIntType(), "a0"))
-    );
-    final Query query = new Query(projNode, splits, Config.empty(), ConnectorConfig.empty());
+    final Query query = new Query(scanNode, splits, Config.empty(), ConnectorConfig.empty());
     final UpIterator out = session.queryOps().execute(query);
+    final RowVector rv = BaseVectorTests.newSampleRowVector(session);
 
+    // No input added, the up-iterator is considered blocked.
     Assert.assertThrows(VeloxException.class, out::get);
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
-    queue.add(BaseVectorTests.newSampleRowVector(session));
+    // Add one input.
+    queue.add(rv);
+    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+    Assert.assertThrows(VeloxException.class, out::advance);
+    BaseVectorTests.assertEquals(rv, out.get());
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
-    // TODO
+    // Add multiple inputs at a time.
+    queue.add(rv);
+    queue.add(rv);
+    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+    Assert.assertThrows(VeloxException.class, out::advance);
+    BaseVectorTests.assertEquals(rv, out.get());
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+    Assert.assertThrows(VeloxException.class, out::advance);
+    BaseVectorTests.assertEquals(rv, out.get());
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+
+    session.close();
+  }
+
+
+  @Test
+  public void testExternalStreamFromBlockingQueue() {
+    final Session session = Velox4j.newSession(memoryManager);
+    final Queue<RowVector> queue = new LinkedBlockingQueue<>();
+    final DownIterator down = DownIterators.fromQueue(queue);
+    final ExternalStream es = session.externalStreamOps().bind(down);
+    final TableScanNode scanNode = new TableScanNode(
+        "id-1",
+        SampleQueryTests.getSchema(),
+        new ExternalStreamTableHandle("connector-external-stream"),
+        List.of()
+    );
+    final List<BoundSplit> splits = List.of(
+        new BoundSplit(
+            "id-1",
+            -1,
+            new ExternalStreamConnectorSplit("connector-external-stream", es.id())
+        )
+    );
+    final Query query = new Query(scanNode, splits, Config.empty(), ConnectorConfig.empty());
+    final UpIterator out = session.queryOps().execute(query);
+    final RowVector rv = BaseVectorTests.newSampleRowVector(session);
+
+    // No input added, the up-iterator is considered blocked.
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+
+    // The wait calls should not throw.
+    out.waitFor();
+    out.waitFor();
+
+    // Add one input.
+    queue.add(rv);
+    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+    Assert.assertThrows(VeloxException.class, out::advance);
+    BaseVectorTests.assertEquals(rv, out.get());
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+
+    // Add multiple inputs at a time.
+    queue.add(rv);
+    queue.add(rv);
+    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+    Assert.assertThrows(VeloxException.class, out::advance);
+    BaseVectorTests.assertEquals(rv, out.get());
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.AVAILABLE, out.advance());
+    Assert.assertThrows(VeloxException.class, out::advance);
+    BaseVectorTests.assertEquals(rv, out.get());
+    Assert.assertThrows(VeloxException.class, out::get);
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
+    Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
     session.close();
   }

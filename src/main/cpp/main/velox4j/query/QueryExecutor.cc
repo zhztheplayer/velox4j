@@ -141,7 +141,10 @@ class Out : public UpIterator {
       VELOX_CHECK_NULL(
           out,
           "Expected to wait but still got non-null output from Velox task");
-      future.wait();
+      // Avoid waiting forever because Velox doesn't propagate
+      // Driver's async errors directly to Task::next.
+      // https://github.com/facebookincubator/velox/blob/9a5946a09780020c1da86c37e8c377e2585d6800/velox/exec/Task.cpp#L3279
+      std::move(future).wait(std::chrono::seconds(1));
     }
   }
 

@@ -38,6 +38,7 @@ void DownIteratorJniWrapper::initialize(JNIEnv* env) {
   cacheMethod(env, "advance", kTypeInt, nullptr);
   cacheMethod(env, "waitFor", kTypeVoid, nullptr);
   cacheMethod(env, "get", kTypeLong, nullptr);
+  cacheMethod(env, "close", kTypeVoid, nullptr);
 
   registerNativeMethods(env);
 }
@@ -49,6 +50,10 @@ DownIterator::DownIterator(JNIEnv* env, jobject ref) : ExternalStream() {
 
 DownIterator::~DownIterator() {
   try {
+    auto* env = getLocalJNIEnv();
+    static const auto* clazz = jniClassRegistry()->get(kClassName);
+    static jmethodID methodId = clazz->getMethod("close");
+    env->CallVoidMethod(ref_, methodId);
     getLocalJNIEnv()->DeleteGlobalRef(ref_);
   } catch (const std::exception& ex) {
     LOG(WARNING)
@@ -81,7 +86,17 @@ std::optional<RowVectorPtr> DownIterator::read(ContinueFuture& future) {
         promises_.emplace_back(std::move(readPromise));
       }
       waitExecutor_->add([this]() -> void {
-        wait();
+        try {
+          wait();
+        } catch (const std::exception& e) {
+          std::lock_guard l(mutex_);
+          VELOX_CHECK(promises_.size() == 1);
+          for (auto& p : promises_) {
+            p.setException(e);
+          }
+          promises_.clear();
+          return;
+        }
         {
           std::lock_guard l(mutex_);
           VELOX_CHECK(promises_.size() == 1);
