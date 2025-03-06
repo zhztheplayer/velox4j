@@ -1,7 +1,12 @@
 package io.github.zhztheplayer.velox4j.data;
 
 import io.github.zhztheplayer.velox4j.serde.Serde;
+import io.github.zhztheplayer.velox4j.session.Session;
+import io.github.zhztheplayer.velox4j.test.ResourceTests;
 import io.github.zhztheplayer.velox4j.type.Type;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.IntVector;
 import org.junit.Assert;
 
 import java.util.List;
@@ -23,5 +28,21 @@ public final class BaseVectorTests {
     for (int i = 0; i < expected.size(); i++) {
       assertEquals(expected.get(i), actual.get(i));
     }
+  }
+
+  public static BaseVector newSampleIntVector(Session session) {
+    final BufferAllocator alloc = new RootAllocator();
+    final IntVector arrowVector = new IntVector("foo", alloc);
+    arrowVector.setValueCount(1);
+    arrowVector.set(0, 15);
+    final BaseVector baseVector = session.arrowOps().fromArrowVector(alloc, arrowVector);
+    arrowVector.close();
+    return baseVector;
+  }
+
+  public static RowVector newSampleRowVector(Session session) {
+    final String serialized = ResourceTests.readResourceAsString("vector/rowvector-1.b64");
+    final BaseVector deserialized = session.baseVectorOps().deserializeOne(serialized);
+    return deserialized.asRowVector();
   }
 }

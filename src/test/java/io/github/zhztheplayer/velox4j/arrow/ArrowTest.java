@@ -35,7 +35,7 @@ public class ArrowTest {
   @Test
   public void testBaseVectorRoundTrip() {
     final Session session = Velox4j.newSession(memoryManager);
-    final RowVector input = SerdeTests.newSampleRowVector(session);
+    final RowVector input = BaseVectorTests.newSampleRowVector(session);
     final BufferAllocator alloc = new RootAllocator(Long.MAX_VALUE);
     final FieldVector arrowVector = Arrow.toArrowVector(alloc, input);
     final BaseVector imported = session.arrowOps().fromArrowVector(alloc, arrowVector);
@@ -47,7 +47,7 @@ public class ArrowTest {
   @Test
   public void testRowVectorRoundTrip() {
     final Session session = Velox4j.newSession(memoryManager);
-    final RowVector input = SerdeTests.newSampleRowVector(session);
+    final RowVector input = BaseVectorTests.newSampleRowVector(session);
     final BufferAllocator alloc = new RootAllocator(Long.MAX_VALUE);
     final Table arrowTable = Arrow.toArrowTable(alloc, input);
     final RowVector imported = session.arrowOps().fromArrowTable(alloc, arrowTable);

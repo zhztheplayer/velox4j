@@ -20,6 +20,7 @@ import io.github.zhztheplayer.velox4j.connector.HiveConnectorSplit;
 import io.github.zhztheplayer.velox4j.connector.HiveInsertTableHandle;
 import io.github.zhztheplayer.velox4j.connector.HiveTableHandle;
 import io.github.zhztheplayer.velox4j.connector.LocationHandle;
+import io.github.zhztheplayer.velox4j.data.BaseVectorTests;
 import io.github.zhztheplayer.velox4j.data.RowVector;
 import io.github.zhztheplayer.velox4j.exception.VeloxException;
 import io.github.zhztheplayer.velox4j.expression.CallTypedExpr;
@@ -261,13 +262,19 @@ public class QueryTest {
             new ExternalStreamConnectorSplit("connector-external-stream", es.id())
         )
     );
-    final Query query = new Query(scanNode, splits, Config.empty(), ConnectorConfig.empty());
+    final ProjectNode projNode = new ProjectNode(
+        "id-2",
+        List.of(scanNode),
+        List.of("a0"),
+        List.of(FieldAccessTypedExpr.create(new BigIntType(), "a0"))
+    );
+    final Query query = new Query(projNode, splits, Config.empty(), ConnectorConfig.empty());
     final UpIterator out = session.queryOps().execute(query);
 
     Assert.assertThrows(VeloxException.class, out::get);
     Assert.assertEquals(UpIterator.State.BLOCKED, out.advance());
 
-    queue.add(SerdeTests.newSampleRowVector(session));
+    queue.add(BaseVectorTests.newSampleRowVector(session));
 
     // TODO
 
@@ -497,7 +504,7 @@ public class QueryTest {
     return list;
   }
 
-  public static List<HiveColumnHandle> toColumnHandles(RowType rowType) {
+  private static List<HiveColumnHandle> toColumnHandles(RowType rowType) {
     final List<HiveColumnHandle> list = new ArrayList<>();
     for (int i = 0; i < rowType.size(); i++) {
       final String name = rowType.getNames().get(i);
