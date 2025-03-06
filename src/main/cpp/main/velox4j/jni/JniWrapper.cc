@@ -245,9 +245,10 @@ class ExternalStreamAsUpIterator : public UpIterator {
     auto out = es_->read(future);
     if (out == std::nullopt) {
       VELOX_CHECK(future.valid());
+      // Do not wait for the future to be fulfilled, just return.
       return State::BLOCKED;
     }
-      VELOX_CHECK(!future.valid());
+    VELOX_CHECK(!future.valid());
     if (out == nullptr) {
       return State::FINISHED;
     }
