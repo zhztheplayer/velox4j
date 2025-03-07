@@ -111,6 +111,7 @@ public final class DownIterators {
         }
         if (closed.get()) {
           Thread.currentThread().interrupt();
+          throw new InterruptedException();
         }
         pending = queue.poll(100L, TimeUnit.MILLISECONDS);
       }
