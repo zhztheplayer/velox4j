@@ -81,6 +81,7 @@ std::optional<RowVectorPtr> DownIterator::read(ContinueFuture& future) {
     case State::BLOCKED: {
       auto [readPromise, readFuture] =
           makeVeloxContinuePromiseContract(fmt::format("DownIterator::read"));
+      // FIXME cycle reference: https://gist.github.com/zhztheplayer/56e037177472f06bb070c68acbaa8bf2?permalink_comment_id=5476849#gistcomment-5476849
       future = std::move(readFuture);
       {
         std::lock_guard l(mutex_);
