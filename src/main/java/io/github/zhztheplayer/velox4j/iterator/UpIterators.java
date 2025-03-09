@@ -16,8 +16,17 @@ public final class UpIterators {
 
     @Override
     public boolean hasNext() {
-      final UpIterator.State state = upIterator.advance();
-      return state != UpIterator.State.FINISHED;
+      while (true) {
+        final UpIterator.State state = upIterator.advance();
+        switch (state) {
+          case BLOCKED:
+            continue;
+          case AVAILABLE:
+            return true;
+          case FINISHED:
+            return false;
+        }
+      }
     }
 
     @Override

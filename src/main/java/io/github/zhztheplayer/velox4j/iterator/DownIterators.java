@@ -16,9 +16,6 @@ public final class DownIterators {
   }
 
   public static DownIterator fromQueue(Queue<RowVector> queue) {
-    if (queue instanceof BlockingQueue) {
-      return new FromBlockingQueue((BlockingQueue<RowVector>) queue);
-    }
     return new FromQueue(queue);
   }
 
@@ -35,10 +32,6 @@ public final class DownIterators {
         return State.FINISHED;
       }
       return State.AVAILABLE;
-    }
-
-    @Override
-    public void waitFor() {
     }
 
     @Override
@@ -68,10 +61,6 @@ public final class DownIterators {
     }
 
     @Override
-    public void waitFor() {
-    }
-
-    @Override
     public long get() {
       return queue.remove().id();
     }
@@ -79,58 +68,6 @@ public final class DownIterators {
     @Override
     public void close() {
 
-    }
-  }
-
-  // Velox should manage the thread safety for this class in passing.
-  private static class FromBlockingQueue implements DownIterator {
-    private final BlockingQueue<RowVector> queue;
-    private RowVector pending = null;
-    private AtomicBoolean closed = new AtomicBoolean(false);
-
-    public FromBlockingQueue(BlockingQueue<RowVector> queue) {
-      this.queue = queue;
-    }
-
-    @Override
-    public State advance0() {
-      if (pending != null) {
-        return State.AVAILABLE;
-      }
-      if (queue.isEmpty()) {
-        return State.BLOCKED;
-      }
-      return State.AVAILABLE;
-    }
-
-    @Override
-    public void waitFor() throws InterruptedException {
-      while (true) {
-        if (pending != null) {
-          return;
-        }
-        if (closed.get()) {
-          Thread.currentThread().interrupt();
-          throw new InterruptedException();
-        }
-        pending = queue.poll(100L, TimeUnit.MILLISECONDS);
-      }
-    }
-
-    @Override
-    public long get() {
-      if (pending != null) {
-        final RowVector out = pending;
-        pending = null;
-        return out.id();
-      }
-      return queue.remove().id();
-    }
-
-    @Override
-    public void close() {
-      Preconditions.checkState(closed.compareAndSet(false, true),
-          "Already closed");
     }
   }
 }

@@ -60,12 +60,10 @@ class DownIterator : public ExternalStream {
 
  private:
   State advance();
-  void wait();
   facebook::velox::RowVectorPtr get();
 
   jobject ref_;
   std::mutex mutex_;
-  std::unique_ptr<folly::IOThreadPoolExecutor> waitExecutor_;
   std::vector<facebook::velox::ContinuePromise> promises_{};
 };
 

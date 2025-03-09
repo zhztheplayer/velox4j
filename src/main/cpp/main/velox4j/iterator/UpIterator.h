@@ -38,7 +38,6 @@ class UpIterator {
   virtual ~UpIterator() = default;
 
   virtual State advance() = 0;
-  virtual void wait() = 0;
   virtual facebook::velox::RowVectorPtr get() = 0;
 };
 } // namespace velox4j

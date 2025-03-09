@@ -96,56 +96,31 @@ class Out : public UpIterator {
       return pendingState_;
     }
     VELOX_CHECK_NULL(pending_);
-    return advance0(false);
-  }
-
-  void wait() override {
-    VELOX_CHECK(!hasPendingState);
-    VELOX_CHECK_NULL(pending_);
-    pendingState_ = advance0(true);
-    hasPendingState = true;
+    if (!task_->isRunning()) {
+      return State::FINISHED;
+    }
+    auto future = ContinueFuture::makeEmpty();
+    auto out = task_->next(&future);
+    saveDrivers();
+    if (!future.valid()) {
+      // Velox task is not blocked and a row vector should be gotten.
+      if (out == nullptr) {
+        return State::FINISHED;
+      }
+      pending_ = std::move(out);
+      return State::AVAILABLE;
+    }
+    return State::BLOCKED;
   }
 
   RowVectorPtr get() override {
     VELOX_CHECK(!hasPendingState);
     VELOX_CHECK_NOT_NULL(
         pending_,
-        "Out: No pending row vector to return. Try calling advance() or wait() first");
-    auto out = pending_;
+        "Out: No pending row vector to return.  No pending row vector to return. Make sure the iterator is available via member function advance() first");
+    const auto out = pending_;
     pending_ = nullptr;
     return out;
-  }
-
- private:
-  State advance0(bool wait) {
-    while (true) {
-      auto future = ContinueFuture::makeEmpty();
-      auto out = task_->next(&future);
-      saveDrivers();
-      if (!future.valid()) {
-        // Velox task is not blocked and a row vector should be gotten.
-        if (out == nullptr) {
-          return State::FINISHED;
-        }
-        pending_ = std::move(out);
-        return State::AVAILABLE;
-      }
-      if (!wait) {
-        return State::BLOCKED;
-      }
-      // Wait for Velox task to respond.
-      VLOG(2)
-          << "Velox task " << task_->taskId()
-          << " is busy when ::next() is called. Will wait and try again. Task state: "
-          << taskStateString(task_->state());
-      VELOX_CHECK_NULL(
-          out,
-          "Expected to wait but still got non-null output from Velox task");
-      // Avoid waiting forever because Velox doesn't propagate
-      // Driver's async errors directly to Task::next.
-      // https://github.com/facebookincubator/velox/blob/9a5946a09780020c1da86c37e8c377e2585d6800/velox/exec/Task.cpp#L3279
-      std::move(future).wait(std::chrono::seconds(1));
-    }
   }
 
   void saveDrivers() {

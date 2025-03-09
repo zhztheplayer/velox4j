@@ -256,15 +256,10 @@ class ExternalStreamAsUpIterator : public UpIterator {
     return State::AVAILABLE;
   }
 
-  void wait() override {
-    VELOX_CHECK_NULL(pending_);
-    VELOX_NYI("Not implemented: {}", "ExternalStreamAsUpIterator::wait");
-  }
-
   RowVectorPtr get() override {
     VELOX_CHECK_NOT_NULL(
         pending_,
-        "ExternalStreamAsUpIterator: No pending row vector to return. Try calling advance() or wait() first");
+        "ExternalStreamAsUpIterator: No pending row vector to return. Make sure the iterator is available via member function advance() first");
     auto out = pending_;
     pending_ = nullptr;
     return out;

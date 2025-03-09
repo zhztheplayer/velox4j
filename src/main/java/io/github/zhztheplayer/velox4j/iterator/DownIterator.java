@@ -24,8 +24,6 @@ public interface DownIterator {
       return advance0().getId();
   }
   @CalledFromNative
-  void waitFor() throws InterruptedException;
-  @CalledFromNative
   long get();
   @CalledFromNative
   void close();

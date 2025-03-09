@@ -73,13 +73,6 @@ jint upIteratorAdvance(JNIEnv* env, jobject javaThis, jlong itrId) {
   JNI_METHOD_END(-1)
 }
 
-void upIteratorWait(JNIEnv* env, jobject javaThis, jlong itrId) {
-  JNI_METHOD_START
-  auto itr = ObjectStore::retrieve<UpIterator>(itrId);
-  itr->wait();
-  JNI_METHOD_END()
-}
-
 jstring variantInferType(JNIEnv* env, jobject javaThis, jstring json) {
   JNI_METHOD_START
   spotify::jni::JavaString jJson{env, json};
@@ -238,8 +231,6 @@ void StaticJniWrapper::initialize(JNIEnv* env) {
       kTypeInt,
       kTypeLong,
       nullptr);
-  addNativeMethod(
-      "upIteratorWait", (void*)upIteratorWait, kTypeVoid, kTypeLong, nullptr);
   addNativeMethod(
       "variantInferType",
       (void*)variantInferType,
