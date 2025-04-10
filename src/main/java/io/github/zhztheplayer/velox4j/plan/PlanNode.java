@@ -20,6 +20,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.github.zhztheplayer.velox4j.exception.VeloxException;
+import io.github.zhztheplayer.velox4j.serializable.ISerializable;
 
 import io.github.zhztheplayer.velox4j.serializable.ISerializable;
 
@@ -40,8 +42,6 @@ public abstract class PlanNode extends ISerializable {
   protected abstract List<PlanNode> getSources();
 
   public void setSources(List<PlanNode> sources) {
-    if (getSources() != null && !getSources().isEmpty()) {
-      getSources().forEach(planNode -> planNode.setSources(sources));
-    }
+    throw new VeloxException("setSources not implemented for " + getClass().getName());
   }
 }
